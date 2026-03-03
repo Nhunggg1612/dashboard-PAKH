@@ -1,0 +1,26 @@
+project:
+  type: website
+  output-dir: _site  # change to 'docs' if deploying to GitHub Pages
+
+website:
+  title: "Nguyễn Nhung"
+  description: "Data • Visualization • R"
+  favicon: images/favicon.png
+  navbar:
+    background: dark
+    pinned: true
+    left:
+      - href: home.qmd
+        text: TỔNG DỰ KIẾN DOANH THU
+      - href: blog.qmd
+        text: DỰ KIẾN DOANH THU THÁNG N
+  page-footer:
+    left: "© {2025} Nguyễn Thị Trang Nhung"
+    right: "Data Analyst"
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: false
+    smooth-scroll: true
