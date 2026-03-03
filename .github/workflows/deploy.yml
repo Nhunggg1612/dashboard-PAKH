@@ -1,4 +1,4 @@
-yamlname: Deploy Quarto to Netlify
+name: Deploy Quarto to Netlify
 
 on:
   push:
