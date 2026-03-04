@@ -308,8 +308,9 @@ highchart() %>%
                 tooltip = list(columnFormat = paste0("Kế hoạch", "\n",accounting(bc_dk_thang_n$gtri_hd, big.mark = ",", digits = 2L, format = "d"), "TTQH"))) %>%
   hc_add_series(name = paste0("DK DT tháng ", thang_n),data = round(bc_dk_thang_n$gtri_hd_n,0)) %>%
   hc_add_series(name = "Tỷ lệ (%)",data = round(bc_dk_thang_n$ty_le,0), type = "spline", yAxis = 1,dataLabels = list(enabled = TRUE, format = "{y}%")) %>%
-  hc_tooltip(headerFormat = "<b>{point.key}</b><br>",
-             pointFormat = "{series.name}: {point.y}") %>%
+  hc_tooltip(shared = TRUE,  # ← hiển thị tất cả series tại point đó
+              headerFormat = "<b>{point.key}</b><br>",
+             pointFormat = "<span style='color:{point.color}'>●</span> {series.name}: <b>{point.y:,.0f}</b><br/>") %>%
   hc_colors(c("#D9D9D9", "#C84309","#645889")) %>%
   hc_legend(labels = list(style = list(color = "black", fontWeight = "bold",fontFamily = "cambria",fontSize = "20px"))) %>%
   hc_exporting(
