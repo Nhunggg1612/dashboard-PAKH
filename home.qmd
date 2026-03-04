@@ -51,7 +51,13 @@ library(shinyWidgets)
 
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
-gs4_auth(path = Sys.getenv("GCP_SERVICE_ACCOUNT"))
+if (Sys.getenv("GCP_SERVICE_ACCOUNT") != "") {
+  # Chạy trên GitHub Actions → dùng Service Account
+  gs4_auth(path = Sys.getenv("GCP_SERVICE_ACCOUNT"))
+} else {
+  # Chạy local → đăng nhập thủ công
+  gs4_auth()
+}
 sheet_url <- "https://docs.google.com/spreadsheets/d/12BlvL_Fxdubk5PL4G-pjX-c4_iQwiubVlknHCrAw5dw/edit?gid=904243310#gid=904243310"
 b2c_aio <- read_sheet(sheet_url, sheet = "Chi tiết")
 
