@@ -1,13 +1,12 @@
 name: Deploy Quarto to Netlify
-
 on:
   push:
     branches: [main]
-    schedule:
-    - cron: '0 2 * * *'  # Chạy lúc 8:00 sáng giờ Việt Nam mỗi ngày
-    - cron: '0 7 * * *'   # 2:00 chiều
-    - cron: '0 10 * * *'  # 5:00 chiều
-    workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+    - cron: '0 7 * * *'
+    - cron: '0 10 * * *'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -43,38 +42,24 @@ jobs:
             libgit2-dev
 
       - name: Cache R packages
+        id: cache-r                          # ← thêm id
         uses: actions/cache@v3
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-4.4.0-fresh
-          restore-keys: ${{ runner.os }}-r-4.4.0-
+          key: ${{ runner.os }}-r-4.4.0-${{ hashFiles('**/DESCRIPTION') }}
+          restore-keys: ${{ runner.os }}-r-4.4.0-   # ← dùng cache cũ nếu không match
 
       - name: Install R packages
-        if: steps.cache-r.outputs.cache-hit != 'true'
+        if: steps.cache-r.outputs.cache-hit != 'true'   # ← giờ hoạt động đúng
         run: |
           install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
           pak::pak(c(
-            "dplyr",
-            "tidyr",
-            "tidyverse",
-            "readxl",
-            "stringr",
-            "stringi",
-            "ggplot2",
-            "ggthemes",
-            "ggiraph",
-            "highcharter",
-            "formattable",
-            "scales",
-            "crosstalk",
-            "reactable",
-            "DT",
-            "repr",
-            "raster",
-            "googlesheets4",
-            "shiny",
-            "shinydashboard",
-            "shinyWidgets"
+            "dplyr", "tidyr", "tidyverse", "readxl",
+            "stringr", "stringi", "ggplot2", "ggthemes",
+            "ggiraph", "highcharter", "formattable",
+            "scales", "crosstalk", "reactable", "DT",
+            "repr", "googlesheets4", "shiny",
+            "shinydashboard", "shinyWidgets"
           ))
         shell: Rscript {0}
 
