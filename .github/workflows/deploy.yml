@@ -39,7 +39,8 @@ jobs:
             libgdal-dev \
             libgeos-dev \
             libproj-dev \
-            libgit2-dev
+            libgit2-dev \
+            libglpk-dev
 
       - name: Cache R packages
         id: cache-r                          # ← thêm id
