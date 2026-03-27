@@ -20,21 +20,22 @@ website:
 
 format:
   html:
-    embed-resources: true    # ← nhúng toàn bộ JS/CSS vào HTML
+    embed-resources: true
     self-contained: true
     theme: cosmo
-    toc: true
+    css: styles.css
+    toc: false
+    smooth-scroll: true
     include-after-body:
       - text: |
           <script>
-            const CHECK_INTERVAL = 60000; // kiểm tra mỗi 60 giây
+            const CHECK_INTERVAL = 60000;
             
             async function getLastBuild() {
               const res = await fetch('/last-build.json?t=' + Date.now());
               const data = await res.json();
               return data.buildTime;
             }
-
             (async () => {
               const initialBuild = await getLastBuild();
               
@@ -46,7 +47,3 @@ format:
               }, CHECK_INTERVAL);
             })();
           </script>
-    theme: cosmo
-    css: styles.css
-    toc: false
-    smooth-scroll: true
