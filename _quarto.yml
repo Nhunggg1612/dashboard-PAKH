@@ -20,8 +20,8 @@ website:
 
 format:
   html:
-    embed-resources: true
-    self-contained: true
+    #embed-resources: true
+    #self-contained: true
     theme: cosmo
     css: styles.css
     toc: false
