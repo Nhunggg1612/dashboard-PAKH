@@ -225,8 +225,113 @@ filters <- div(
         });
       "
     )
+  ),
+  # Nút tải CSV
+  div(
+    style = "margin-top: 20px;",
+    tags$button(
+      "⬇ Tải CSV",
+      style = "padding: 6px 14px; cursor: pointer; border: 1px solid #28a745;
+               border-radius: 4px; background: #28a745; color: white; font-size: 14px;",
+      onclick = "
+        var table = document.querySelector('.ReactTable');
+        var rows = table.querySelectorAll('.rt-tr-group');
+        var headers = [];
+        table.querySelectorAll('.rt-th').forEach(function(th) {
+          headers.push(th.innerText.trim());
+        });
+        var csvContent = headers.join(',') + '\n';
+        rows.forEach(function(row) {
+          var cells = row.querySelectorAll('.rt-td');
+          var rowData = [];
+          cells.forEach(function(cell) {
+            rowData.push('\"' + cell.innerText.trim() + '\"');
+          });
+          if (rowData.length > 0) csvContent += rowData.join(',') + '\n';
+        });
+        var blob = new Blob(['\uFEFF' + csvContent], {type: 'text/csv;charset=utf-8;'});
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'danh_sach_ticket.csv';
+        link.click();
+      "
+    )
+  ),
+  
+  # Nút tải PNG
+  div(
+    style = "margin-top: 20px;",
+    tags$button(
+      "📷 Tải PNG",
+      style = "padding: 6px 14px; cursor: pointer; border: 1px solid #007bff;
+               border-radius: 4px; background: #007bff; color: white; font-size: 14px;",
+      onclick = "
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.onload = function() {
+          var tableId = 'bang-chitiet';
+          var table = document.getElementById(tableId);
+          
+          // ← Dùng Reactable API hiện tất cả dòng
+          Reactable.setPageSize(tableId, 99999);
+          
+          setTimeout(function() {
+            // Lưu style cũ
+            var oldWidth = table.style.width;
+            var oldOverflow = table.style.overflow;
+            var oldMaxWidth = table.style.maxWidth;
+            
+            // Mở rộng bảng
+            table.style.width = 'max-content';
+            table.style.maxWidth = 'none';
+            table.style.overflow = 'visible';
+            
+            // Wrap text
+            var allCells = table.querySelectorAll('.rt-td, .rt-th');
+            var oldWhiteSpace = [];
+            allCells.forEach(function(cell, i) {
+              oldWhiteSpace[i] = cell.style.whiteSpace;
+              cell.style.whiteSpace = 'normal';
+              cell.style.wordBreak = 'break-word';
+            });
+            
+            setTimeout(function() {
+              html2canvas(table, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: table.scrollWidth,
+                width: table.scrollWidth,
+                height: table.scrollHeight
+              }).then(function(canvas) {
+                // Khôi phục style
+                table.style.width = oldWidth;
+                table.style.overflow = oldOverflow;
+                table.style.maxWidth = oldMaxWidth;
+                allCells.forEach(function(cell, i) {
+                  cell.style.whiteSpace = oldWhiteSpace[i];
+                });
+                
+                // ← Trả về pageSize cũ
+                Reactable.setPageSize(tableId, 4);
+                
+                // Tải ảnh
+                var link = document.createElement('a');
+                link.download = 'danh_sach_ticket.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+              });
+            }, 800);
+          }, 800);  // ← chờ bảng render đủ dòng
+        };
+        document.head.appendChild(script);
+      "
+    )
   )
 )
+
 
 
 
@@ -257,11 +362,13 @@ browsable(
     filters,
     reactable(
       shared_data, minRows = 3,width = 1500, height = "auto",         # ← dùng shared_data thay vì df gốc
+      elementId = "bang-chitiet",
       theme = reactableTheme(
-  rowStyle = list(
-    `&:hover` = list(
-      backgroundColor = "#FFE4CC !important",
-      cursor = "pointer"
+        style = list(fontSize = "13px"),
+        rowStyle = list(
+        `&:hover` = list(
+        backgroundColor = "#FFE4CC !important",
+        cursor = "pointer"
     )
   )
 ),
@@ -270,7 +377,185 @@ browsable(
       striped         = TRUE,
       highlight       = TRUE,
       resizable       = TRUE,
-      defaultPageSize = 4
+      defaultPageSize = 5
+    )
+  )
+)
+```
+
+
+```{r,out.width = '150%', echo = FALSE, warning=FALSE, message=FALSE}
+library(reactable)
+library(crosstalk)
+library(htmltools)
+
+# Load html2canvas 1 lần duy nhất ở đầu
+html2canvas_script <- tags$head(
+  tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js")
+)
+
+# Bước 1: Bọc data bằng SharedData
+shared_data <- SharedData$new(ticket_chitiet)
+
+# Bước 2: Tạo các filter bên ngoài
+filters <- div(
+  style = "display: flex; gap: 20px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap;",
+  
+  div(
+    style = "width: 250px;",
+    tags$label("Đơn vị điều hành", style = "font-weight: bold; display: block;"),
+    filter_select("don_vi_dieu_hanh", "", shared_data, ~`Đơn vị điều hành`, multiple = FALSE)
+  ),
+  
+  div(
+    style = "width: 250px;",
+    tags$label("Trạng thái", style = "font-weight: bold; display: block;"),
+    filter_select("trang_thai", "", shared_data, ~`Trạng thái`, multiple = FALSE)
+  ),
+  
+  # Nút Reset
+  div(
+    style = "margin-top: 20px;",
+    tags$button(
+      "🔄 Reset",
+      style = "padding: 6px 14px; cursor: pointer; border: 1px solid #ccc;
+               border-radius: 4px; background: #f5f5f5; font-size: 14px;",
+      onclick = "
+        var selects = document.querySelectorAll('.selectized');
+        selects.forEach(function(el) {
+          if (el.selectize) el.selectize.clear();
+        });
+      "
+    )
+  ),
+
+  # Nút tải CSV — dùng Reactable.downloadDataCSV
+  div(
+    style = "margin-top: 20px;",
+    tags$button(
+      "⬇ Tải CSV",
+      style = "padding: 6px 14px; cursor: pointer; border: 1px solid #28a745;
+               border-radius: 4px; background: #28a745; color: white; font-size: 14px;",
+      onclick = "Reactable.downloadDataCSV('bang-chitiet', 'danh_sach_ticket.csv')"
+    )
+  ),
+  
+  # Nút tải PNG
+  div(
+    style = "margin-top: 20px;",
+    tags$button(
+      "📷 Tải PNG",
+      style = "padding: 6px 14px; cursor: pointer; border: 1px solid #007bff;
+               border-radius: 4px; background: #007bff; color: white; font-size: 14px;",
+      onclick = "
+        // Load thư viện
+        if (!window.domtoimage) {
+          var s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
+          s.onload = function() { chupAnh(); };
+          document.head.appendChild(s);
+        } else {
+          chupAnh();
+        }
+        
+        function chupAnh() {
+          var tableId = 'bang-chitiet';
+          var table = document.getElementById(tableId);
+          
+          // Hiện tất cả dòng
+          Reactable.setPageSize(tableId, 99999);
+          
+          setTimeout(function() {
+            // Mở rộng bảng
+            var clone = table.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.width = table.scrollWidth + 'px';
+            clone.style.overflow = 'visible';
+            
+            // Wrap text
+            var cells = clone.querySelectorAll('.rt-td, .rt-th');
+            cells.forEach(function(cell) {
+              cell.style.whiteSpace = 'normal';
+              cell.style.wordBreak = 'break-word';
+            });
+            
+            document.body.appendChild(clone);
+            
+            setTimeout(function() {
+              domtoimage.toPng(clone, {
+                width: clone.scrollWidth,
+                height: clone.scrollHeight,
+                style: { transform: 'scale(1)' }
+              }).then(function(dataUrl) {
+                document.body.removeChild(clone);
+                Reactable.setPageSize(tableId, 5);
+                
+                var link = document.createElement('a');
+                link.download = 'danh_sach_ticket.png';
+                link.href = dataUrl;
+                link.click();
+              }).catch(function(err) {
+                document.body.removeChild(clone);
+                Reactable.setPageSize(tableId, 5);
+                console.error('Lỗi chụp ảnh:', err);
+                alert('Lỗi: ' + err);
+              });
+            }, 1000);
+          }, 1000);
+        }
+      "
+    )
+  )
+)
+
+# Bước 3: Tạo colDef tự động
+custom_width <- c(
+  "Sản phẩm"       = 150,
+  "Chi tiết"        = 300,
+  "Tên khách hàng"  = 120,
+  "Địa chỉ"         = 250
+)
+
+col_defs <- setNames(
+  lapply(names(ticket_chitiet), function(col) {
+    colDef(
+      name        = col,
+      headerStyle = list(color = "black", background = "#F5DEB3",
+                         whiteSpace = "normal", textAlign = "center"),
+      aggregate   = "unique",
+      align       = "left",
+      width       = ifelse(col %in% names(custom_width), custom_width[[col]], 100)
+    )
+  }),
+  names(ticket_chitiet)
+)
+
+# Bước 4: Ghép filter + bảng
+browsable(
+  tagList(
+    # ← Load html2canvas trực tiếp (không dùng tags$head)
+    tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
+    
+    filters,
+    reactable(
+      shared_data, minRows = 3, width = 1500, height = "auto",
+      elementId = "bang-chitiet",
+      theme = reactableTheme(
+        style = list(fontSize = "13px"),
+        rowStyle = list(
+          `&:hover` = list(
+            backgroundColor = "#FFE4CC !important",
+            cursor = "pointer"
+          )
+        )
+      ),
+      columns         = col_defs,
+      bordered        = TRUE,
+      striped         = TRUE,
+      highlight        = TRUE,
+      resizable       = TRUE,
+      defaultPageSize = 5
     )
   )
 )
