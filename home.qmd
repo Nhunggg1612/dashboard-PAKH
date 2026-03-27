@@ -57,7 +57,10 @@ writeLines(
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
 pakh_ton <- read_excel("data/3.R_pakh.xlsx")
-now <- format(Sys.time(), "%d/%m/%Y %H:%M:%S")
+now <- format(
+  as.POSIXct(Sys.time(), tz = "Asia/Ho_Chi_Minh"), 
+  "%d/%m/%Y %H:%M:%S"
+)
 ```
 
 ## <span style="color: #C35817;font-family: cambria;">**I. DANH SÁCH TICKET CÒN TỒN CHƯA XỬ LÝ ĐẾN ** <strong>`r now`</strong></span>
