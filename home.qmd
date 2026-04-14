@@ -192,10 +192,17 @@ library(htmltools)
 library(jsonlite)
 
 CT_GROUP    <- "bang_chitiet_group"
-shared_data <- SharedData$new(ticket_chitiet, group = CT_GROUP)
+ticket_chitiet_display <- ticket_chitiet
+cols_datetime <- c("Ngày bắt đầu", "Ngày kết thúc")  # đúng tên cột của bạn
 
-data_json      <- toJSON(ticket_chitiet, auto_unbox = TRUE, na = "null")
-col_names_json <- toJSON(names(ticket_chitiet), auto_unbox = FALSE)
+ticket_chitiet_display[cols_datetime] <- lapply(
+  ticket_chitiet_display[cols_datetime],
+  function(col) format(col, "%Y-%m-%d %H:%M:%S")
+)
+
+shared_data <- SharedData$new(ticket_chitiet_display, group = CT_GROUP)
+data_json   <- toJSON(ticket_chitiet_display, auto_unbox = TRUE, na = "null")
+col_names_json <- toJSON(names(ticket_chitiet_display), auto_unbox = FALSE)
 
 custom_width <- c(
   "Sản phẩm"      = 150,
