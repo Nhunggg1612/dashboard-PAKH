@@ -229,77 +229,87 @@ col_widths_r <- sapply(names(ticket_chitiet), function(col) {
 col_widths_json <- toJSON(as.list(col_widths_r), auto_unbox = TRUE)
 
 # ── Filters UI ──────────────────────────────────────────────────────────────────
+# Tạo style đồng bộ cho các ô select (gồm cả select thường và selectize của crosstalk)
 select_style <- "width:100%; padding:4px 6px; font-size:14px; border:1px solid #ccc;
                  border-radius:4px; height:36px; box-sizing:border-box;"
 
+# CSS bổ sung để ép các selectize của Crosstalk tuân thủ đúng chiều cao và hiển thị gọn gàng
+crosstalk_custom_css <- tags$style(HTML("
+  .crosstalk-input-select { margin-bottom: 0 !important; }
+  .crosstalk-input-select .selectize-control { margin-bottom: 0 !important; }
+  .crosstalk-input-select .selectize-input { 
+    height: 36px !important; 
+    line-height: 26px !important;
+    padding: 4px 12px !important;
+    box-sizing: border-box !important;
+  }
+"))
+
 filters <- div(
-  style = "display:flex; gap:20px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;",
-
-  # Filter 1: Đơn vị điều hành (crosstalk — selectize)
+  crosstalk_custom_css, # Nhúng CSS xử lý riêng cho Crosstalk
+  
+  # CONTAINER CHÍNH: Sử dụng Grid chia 4 cột cố định cho các bộ lọc
   div(
-    style = "width:250px;",
-    tags$label("Đơn vị điều hành", style = "font-weight:bold; display:block;"),
-    filter_select("don_vi_dieu_hanh", "", shared_data, ~`Đơn vị điều hành`, multiple = FALSE)
-  ),
+    style = "display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 16px; align-items: end;",
+    
+    # Filter 1: Đơn vị điều hành
+    div(
+      tags$label("Đơn vị điều hành", style = "font-weight:bold; display:block; margin-bottom:6px; font-size:14px;"),
+      filter_select("don_vi_dieu_hanh", "", shared_data, ~`Đơn vị điều hành`, multiple = FALSE)
+    ),
 
-  # Filter 2: Trạng thái (crosstalk — selectize, độc lập)
-  div(
-    style = "width:250px;",
-    tags$label("Trạng thái", style = "font-weight:bold; display:block;"),
-    filter_select("trang_thai", "", shared_data, ~`Trạng thái`, multiple = FALSE)
-  ),
+    # Filter 2: Trạng thái
+    div(
+      tags$label("Trạng thái", style = "font-weight:bold; display:block; margin-bottom:6px; font-size:14px;"),
+      filter_select("trang_thai", "", shared_data, ~`Trạng thái`, multiple = FALSE)
+    ),
 
-  # Filter 3: AM chuyên quản — HTML select, cascade từ Đơn vị
-  div(
-    style = "width:250px;",
-    tags$label("Nhóm AM", style = "font-weight:bold; display:block;"),
-    tags$select(
-      id    = "am_select",
-      style = select_style,
-      tags$option(value = "", "Tất cả")
+    # Filter 3: Nhóm AM
+    div(
+      tags$label("Nhóm AM", style = "font-weight:bold; display:block; margin-bottom:6px; font-size:14px;"),
+      tags$select(
+        id    = "am_select",
+        style = select_style,
+        tags$option(value = "", "Tất cả")
+      )
+    ),
+
+    # Filter 4: Mã tỉnh
+    div(
+      tags$label("Mã tỉnh", style = "font-weight:bold; display:block; margin-bottom:6px; font-size:14px;"),
+      tags$select(
+        id    = "tinh_select",
+        style = select_style,
+        tags$option(value = "", "Tất cả")
+      )
     )
   ),
-
-  # Filter 4: Mã tỉnh — HTML select, cascade từ AM
+  
+  # CONTAINER NÚT: Tách nhóm nút bấm xuống một hàng riêng bên dưới cho thoáng và chuyên nghiệp
   div(
-    style = "width:250px;",
-    tags$label("Mã tỉnh", style = "font-weight:bold; display:block;"),
-    tags$select(
-      id    = "tinh_select",
-      style = select_style,
-      tags$option(value = "", "Tất cả")
-    )
-  ),
-
-  # Nút Reset
-  div(
-    style = "margin-top:20px;",
+    style = "display: flex; gap: 10px; margin-bottom: 20px;",
+    
+    # Nút Reset
     tags$button(
       "\U0001F504 Reset",
       style   = "padding:6px 14px; cursor:pointer; border:1px solid #ccc;
-                 border-radius:4px; background:#f5f5f5; font-size:14px;",
+                 border-radius:4px; background:#f5f5f5; font-size:14px; font-weight:500;",
       onclick = "resetAllFilters()"
-    )
-  ),
+    ),
 
-  # Nút Tải Excel
-  div(
-    style = "margin-top:20px;",
+    # Nút Tải Excel
     tags$button(
       "\u2B07 T\u1ea3i Excel",
       style   = "padding:6px 14px; cursor:pointer; border:1px solid #28a745;
-                 border-radius:4px; background:#28a745; color:white; font-size:14px;",
+                 border-radius:4px; background:#28a745; color:white; font-size:14px; font-weight:500;",
       onclick = "window._taiExcel && window._taiExcel(this)"
-    )
-  ),
+    ),
 
-  # Nút Tải PNG
-  div(
-    style = "margin-top:20px;",
+    # Nút Tải PNG
     tags$button(
       "\U0001F4F7 T\u1ea3i PNG",
       style   = "padding:6px 14px; cursor:pointer; border:1px solid #007bff;
-                 border-radius:4px; background:#007bff; color:white; font-size:14px;",
+                 border-radius:4px; background:#007bff; color:white; font-size:14px; font-weight:500;",
       onclick = "window._taiPNG && window._taiPNG(this)"
     )
   )
