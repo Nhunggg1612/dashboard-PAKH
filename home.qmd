@@ -190,73 +190,122 @@ library(reactable)
 library(crosstalk)
 library(htmltools)
 library(jsonlite)
+library(dplyr)
 
-CT_GROUP    <- "bang_chitiet_group"
+CT_GROUP <- "bang_chitiet_group"
+
 ticket_chitiet_display <- ticket_chitiet
-cols_datetime <- c("Ngày bắt đầu", "Ngày kết thúc")  # đúng tên cột của bạn
 
-#ticket_chitiet_display[cols_datetime] <- lapply(
-#  ticket_chitiet_display[cols_datetime],
-#  function(col) format(col, "%Y-%m-%d %H:%M:%S")
-#)
-
-shared_data <- SharedData$new(ticket_chitiet_display, group = CT_GROUP)
-data_json   <- toJSON(ticket_chitiet_display, auto_unbox = TRUE, na = "null")
+# ── Chuẩn bị data ──────────────────────────────────────────────────────────────
+shared_data    <- SharedData$new(ticket_chitiet_display, group = CT_GROUP)
+data_json      <- toJSON(ticket_chitiet_display, auto_unbox = TRUE, na = "null")
 col_names_json <- toJSON(names(ticket_chitiet_display), auto_unbox = FALSE)
 
+# ── Mapping 3 cấp cascading ────────────────────────────────────────────────────
+# Cấp 1: Đơn vị điều hành → danh sách AM chuyên quản
+am_map <- ticket_chitiet_display |>
+  group_by(`Đơn vị điều hành`) |>
+  summarise(am_list = list(sort(unique(`AM chuyên quản`)))) |>
+  deframe()
+am_map_json <- toJSON(am_map, auto_unbox = FALSE)
+
+# Cấp 2: AM chuyên quản → danh sách Mã tỉnh
+tinh_map <- ticket_chitiet_display |>
+  group_by(`AM chuyên quản`) |>
+  summarise(tinh_list = list(sort(unique(`Mã tỉnh`)))) |>
+  deframe()
+tinh_map_json <- toJSON(tinh_map, auto_unbox = FALSE)
+
+# ── Column widths ───────────────────────────────────────────────────────────────
 custom_width <- c(
-  "Sản phẩm"      = 150,
-  "Chi tiết"       = 300,
-  "Tên khách hàng" = 120,
-  "Địa chỉ"        = 250
+  "Sản phẩm"       = 150,
+  "Chi tiết"        = 300,
+  "Tên khách hàng"  = 120,
+  "Địa chỉ"         = 250
 )
 col_widths_r <- sapply(names(ticket_chitiet), function(col) {
   if (col %in% names(custom_width)) custom_width[[col]] else 100
 })
 col_widths_json <- toJSON(as.list(col_widths_r), auto_unbox = TRUE)
 
-# ── Filters ──
+# ── Filters UI ──────────────────────────────────────────────────────────────────
+select_style <- "width:100%; padding:4px 6px; font-size:14px; border:1px solid #ccc;
+                 border-radius:4px; height:36px; box-sizing:border-box;"
+
 filters <- div(
-  style = "display: flex; gap: 20px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap;",
+  style = "display:flex; gap:20px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;",
+
+  # Filter 1: Đơn vị điều hành (crosstalk — selectize)
   div(
-    style = "width: 250px;",
-    tags$label("Đơn vị điều hành", style = "font-weight: bold; display: block;"),
+    style = "width:250px;",
+    tags$label("Đơn vị điều hành", style = "font-weight:bold; display:block;"),
     filter_select("don_vi_dieu_hanh", "", shared_data, ~`Đơn vị điều hành`, multiple = FALSE)
   ),
+
+  # Filter 2: Trạng thái (crosstalk — selectize, độc lập)
   div(
-    style = "width: 250px;",
-    tags$label("Trạng thái", style = "font-weight: bold; display: block;"),
+    style = "width:250px;",
+    tags$label("Trạng thái", style = "font-weight:bold; display:block;"),
     filter_select("trang_thai", "", shared_data, ~`Trạng thái`, multiple = FALSE)
   ),
+
+  # Filter 3: AM chuyên quản — HTML select, cascade từ Đơn vị
   div(
-    style = "margin-top: 20px;",
-    tags$button("🔄 Reset",
-      style   = "padding: 6px 14px; cursor: pointer; border: 1px solid #ccc;
-                 border-radius: 4px; background: #f5f5f5; font-size: 14px;",
-      onclick = "document.querySelectorAll('.selectized').forEach(function(el){
-                   if(el.selectize) el.selectize.clear();
-                 });"
+    style = "width:250px;",
+    tags$label("Nhóm AM", style = "font-weight:bold; display:block;"),
+    tags$select(
+      id    = "am_select",
+      style = select_style,
+      tags$option(value = "", "Tất cả")
     )
   ),
+
+  # Filter 4: Mã tỉnh — HTML select, cascade từ AM
   div(
-    style = "margin-top: 20px;",
-    tags$button("⬇ Tải Excel",
-      style   = "padding: 6px 14px; cursor: pointer; border: 1px solid #28a745;
-                 border-radius: 4px; background: #28a745; color: white; font-size: 14px;",
+    style = "width:250px;",
+    tags$label("Mã tỉnh", style = "font-weight:bold; display:block;"),
+    tags$select(
+      id    = "tinh_select",
+      style = select_style,
+      tags$option(value = "", "Tất cả")
+    )
+  ),
+
+  # Nút Reset
+  div(
+    style = "margin-top:20px;",
+    tags$button(
+      "\U0001F504 Reset",
+      style   = "padding:6px 14px; cursor:pointer; border:1px solid #ccc;
+                 border-radius:4px; background:#f5f5f5; font-size:14px;",
+      onclick = "resetAllFilters()"
+    )
+  ),
+
+  # Nút Tải Excel
+  div(
+    style = "margin-top:20px;",
+    tags$button(
+      "\u2B07 T\u1ea3i Excel",
+      style   = "padding:6px 14px; cursor:pointer; border:1px solid #28a745;
+                 border-radius:4px; background:#28a745; color:white; font-size:14px;",
       onclick = "window._taiExcel && window._taiExcel(this)"
     )
   ),
+
+  # Nút Tải PNG
   div(
-    style = "margin-top: 20px;",
-    tags$button("📷 Tải PNG",
-      style   = "padding: 6px 14px; cursor: pointer; border: 1px solid #007bff;
-                 border-radius: 4px; background: #007bff; color: white; font-size: 14px;",
+    style = "margin-top:20px;",
+    tags$button(
+      "\U0001F4F7 T\u1ea3i PNG",
+      style   = "padding:6px 14px; cursor:pointer; border:1px solid #007bff;
+                 border-radius:4px; background:#007bff; color:white; font-size:14px;",
       onclick = "window._taiPNG && window._taiPNG(this)"
     )
   )
 )
 
-# ── colDef ──
+# ── colDef ──────────────────────────────────────────────────────────────────────
 col_defs <- setNames(
   lapply(names(ticket_chitiet), function(col) {
     colDef(
@@ -271,41 +320,149 @@ col_defs <- setNames(
   names(ticket_chitiet)
 )
 
-# ── JavaScript: dùng paste0 thay sprintf để tránh lỗi % ──
+# ── JS: inject biến R ───────────────────────────────────────────────────────────
 js_vars <- paste0(
-  "var FULL_DATA  = ", data_json, ";\n",
-  "var COL_NAMES  = ", col_names_json, ";\n",
-  "var COL_WIDTHS = ", col_widths_json, ";\n",
-  "var CT_GROUP   = '", CT_GROUP, "';\n"
+  "var FULL_DATA  = ", data_json,       ";\n",
+  "var COL_NAMES  = ", col_names_json,   ";\n",
+  "var COL_WIDTHS = ", col_widths_json,  ";\n",
+  "var CT_GROUP   = '", CT_GROUP,       "';\n",
+  "var AM_MAP     = ", am_map_json,      ";\n",
+  "var TINH_MAP   = ", tinh_map_json,    ";\n"
 )
 
+# ── JS: logic chính ─────────────────────────────────────────────────────────────
 js_logic <- "
 (function () {
 
-  var activeKeys = null;
+  /* ── State ── */
+  var activeKeys    = null;
+  var amFilterHandle   = null;
+  var tinhFilterHandle = null;
 
-  function initFilter() {
-    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
-    var fh = new crosstalk.FilterHandle(CT_GROUP);
-    fh.on('change', function (e) {
-      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
+  /* ── Helpers ── */
+  function buildOptions(selectEl, items) {
+    selectEl.innerHTML = '<option value=\"\">Tất cả</option>';
+    (items || []).forEach(function (v) {
+      if (v === null || v === undefined) return;
+      var opt = document.createElement('option');
+      opt.value = opt.textContent = String(v);
+      selectEl.appendChild(opt);
     });
   }
-  initFilter();
 
+  function getSelectizeVal(wrapperId) {
+    var w = document.querySelector('#' + wrapperId);
+    var h = w && w.querySelector('.selectized');
+    return (h && h.selectize) ? h.selectize.getValue() : '';
+  }
+
+  /* ── Khởi tạo crosstalk ── */
+  function initFilter() {
+    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
+
+    /* Handle tổng hợp — theo dõi activeKeys cho Export */
+    var mainHandle = new crosstalk.FilterHandle(CT_GROUP);
+    mainHandle.on('change', function (e) {
+      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
+    });
+
+    /* Handle riêng cho AM và Tỉnh */
+    amFilterHandle   = new crosstalk.FilterHandle(CT_GROUP);
+    tinhFilterHandle = new crosstalk.FilterHandle(CT_GROUP);
+
+    /* Chờ selectize Đơn vị sẵn sàng */
+    var waitDV = setInterval(function () {
+      var w = document.querySelector('#don_vi_dieu_hanh');
+      var h = w && w.querySelector('.selectized');
+      if (h && h.selectize) {
+        h.selectize.on('change', onDonViChange);
+        clearInterval(waitDV);
+      }
+    }, 200);
+
+    /* Gắn event AM select */
+    var amEl = document.getElementById('am_select');
+    if (amEl) amEl.addEventListener('change', onAmChange);
+
+    /* Gắn event Tỉnh select */
+    var tinhEl = document.getElementById('tinh_select');
+    if (tinhEl) tinhEl.addEventListener('change', onTinhChange);
+  }
+
+  /* ── Cấp 1→2: Đơn vị → rebuild AM options, reset Tỉnh ── */
+  function onDonViChange() {
+    var donVi  = getSelectizeVal('don_vi_dieu_hanh');
+    var amEl   = document.getElementById('am_select');
+    var tinhEl = document.getElementById('tinh_select');
+
+    buildOptions(amEl,   donVi ? AM_MAP[donVi]   : []);
+    buildOptions(tinhEl, []);
+
+    amFilterHandle.clear();
+    tinhFilterHandle.clear();
+  }
+
+  /* ── Cấp 2→3: AM → rebuild Tỉnh options, đẩy filter AM ── */
+  function onAmChange() {
+    var amVal  = document.getElementById('am_select').value;
+    var tinhEl = document.getElementById('tinh_select');
+
+    /* Rebuild Tỉnh */
+    buildOptions(tinhEl, amVal ? TINH_MAP[amVal] : []);
+    tinhFilterHandle.clear();
+
+    /* Filter AM vào crosstalk */
+    if (!amVal) { amFilterHandle.clear(); return; }
+    var keys = FULL_DATA
+      .map(function (row, i) { return { row: row, i: i }; })
+      .filter(function (d) { return String(d.row['AM chuyên quản']) === amVal; })
+      .map(function (d)    { return String(d.i + 1); });
+    amFilterHandle.set(keys);
+  }
+
+  /* ── Cấp 3: Tỉnh → đẩy filter Tỉnh ── */
+  function onTinhChange() {
+    var amVal   = document.getElementById('am_select').value;
+    var tinhVal = document.getElementById('tinh_select').value;
+
+    if (!tinhVal) { tinhFilterHandle.clear(); return; }
+
+    var keys = FULL_DATA
+      .map(function (row, i) { return { row: row, i: i }; })
+      .filter(function (d) {
+        return String(d.row['AM chuyên quản']) === amVal &&
+               String(d.row['Mã tỉnh'])        === tinhVal;
+      })
+      .map(function (d) { return String(d.i + 1); });
+    tinhFilterHandle.set(keys);
+  }
+
+  /* ── Reset tất cả ── */
+  window.resetAllFilters = function () {
+    document.querySelectorAll('.selectized').forEach(function (el) {
+      if (el.selectize) el.selectize.clear();
+    });
+    var amEl   = document.getElementById('am_select');
+    var tinhEl = document.getElementById('tinh_select');
+    if (amEl)   buildOptions(amEl,   []);
+    if (tinhEl) buildOptions(tinhEl, []);
+    if (amFilterHandle)   amFilterHandle.clear();
+    if (tinhFilterHandle) tinhFilterHandle.clear();
+  };
+
+  /* ── Lấy dữ liệu theo filter hiện tại (cho Export) ── */
   function getFilteredData() {
     if (!activeKeys) return FULL_DATA;
     var keySet = new Set(activeKeys.map(String));
-    return FULL_DATA.filter(function (_, i) {
-      return keySet.has(String(i + 1));
-    });
+    return FULL_DATA.filter(function (_, i) { return keySet.has(String(i + 1)); });
   }
 
+  /* ── Lazy load script ── */
   function loadScript(url, cb) {
     if (document.querySelector('script[src=\"' + url + '\"]')) { cb && cb(); return; }
-    var s = document.createElement('script');
-    s.src = url;
-    s.onload = cb || function () {};
+    var s     = document.createElement('script');
+    s.src     = url;
+    s.onload  = cb || function () {};
     s.onerror = function () { alert('Không load được: ' + url); };
     document.head.appendChild(s);
   }
@@ -316,7 +473,7 @@ js_logic <- "
     btn.textContent = loading ? '⏳ Đang tạo...' : label;
   }
 
-  /* ── EXCEL ── */
+  /* ── Xuất Excel ── */
   window._taiExcel = function (btn) {
     function doExcel() {
       setBtnState(btn, true);
@@ -340,7 +497,7 @@ js_logic <- "
       : loadScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', doExcel);
   };
 
-  /* ── PNG ── */
+  /* ── Xuất PNG ── */
   window._taiPNG = function (btn) {
     function doPNG() {
       setBtnState(btn, true);
@@ -350,11 +507,9 @@ js_logic <- "
         setBtnState(btn, false, '📷 Tải PNG');
         return;
       }
-
       var totalWidth = COL_NAMES.reduce(function (s, col) {
         return s + (COL_WIDTHS[col] || 100);
       }, 0);
-
       var html = '<table style=\"border-collapse:collapse;font-size:13px;'
                + 'font-family:Arial,sans-serif;width:' + totalWidth + 'px;\">'
                + '<colgroup>';
@@ -380,25 +535,20 @@ js_logic <- "
         html += '</tr>';
       });
       html += '</tbody></table>';
-
       var wrapper = document.createElement('div');
       wrapper.style.cssText = 'position:fixed;top:-99999px;left:-99999px;'
                             + 'background:#ffffff;padding:16px;'
                             + 'width:' + (totalWidth + 32) + 'px;';
       wrapper.innerHTML = html;
       document.body.appendChild(wrapper);
-
       html2canvas(wrapper, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        width: wrapper.scrollWidth,
-        height: wrapper.scrollHeight
+        scale: 2, backgroundColor: '#ffffff', useCORS: true,
+        width: wrapper.scrollWidth, height: wrapper.scrollHeight
       }).then(function (canvas) {
         document.body.removeChild(wrapper);
-        var a = document.createElement('a');
+        var a      = document.createElement('a');
         a.download = 'danh_sach_ticket.png';
-        a.href = canvas.toDataURL('image/png');
+        a.href     = canvas.toDataURL('image/png');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -414,20 +564,26 @@ js_logic <- "
       : loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', doPNG);
   };
 
+  /* ── Khởi động ── */
+  initFilter();
+
 })();
 "
 
-# ── Render ──
+# ── Render ──────────────────────────────────────────────────────────────────────
 browsable(
   tagList(
     filters,
     reactable(
-      shared_data, minRows = 3, width = 1500, height = "auto",
+      shared_data,
+      minRows   = 3,
+      width     = 1500,
+      height    = "auto",
       elementId = "bang-chitiet",
       theme = reactableTheme(
         style    = list(fontSize = "13px"),
         rowStyle = list(`&:hover` = list(backgroundColor = "#FFE4CC !important",
-                                        cursor = "pointer"))
+                                         cursor = "pointer"))
       ),
       columns         = col_defs,
       bordered        = TRUE,
@@ -436,7 +592,6 @@ browsable(
       resizable       = TRUE,
       defaultPageSize = 5
     ),
-    # Inject biến R vào JS riêng → tránh sprintf
     tags$script(HTML(js_vars)),
     tags$script(HTML(js_logic))
   )
