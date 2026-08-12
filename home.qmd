@@ -346,8 +346,6 @@ js_logic <- "
 
   /* ── State ── */
   var activeKeys    = null;
-  var amFilterHandle   = null;
-  var tinhFilterHandle = null;
 
   /* ── Helpers ── */
   function buildOptions(selectEl, items) {

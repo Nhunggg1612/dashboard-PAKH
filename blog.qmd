@@ -470,8 +470,7 @@ js_vars <- paste0(
   "var COL_NAMES  = ", col_names_json,   ";\n",
   "var COL_WIDTHS = ", col_widths_json,  ";\n",
   "var CT_GROUP   = '", CT_GROUP,       "';\n",
-  "var AM_MAP     = ", am_map_json,      ";\n",
-  "var TINH_MAP   = ", tinh_map_json,    ";\n"
+  "var AM_MAP     = ", am_map_json,      ";\n"
 )
 
 # ── JS: logic chính ─────────────────────────────────────────────────────────────
@@ -511,7 +510,6 @@ js_logic <- "
 
     /* Handle riêng cho AM và Tỉnh */
     amFilterHandle   = new crosstalk.FilterHandle(CT_GROUP);
-    tinhFilterHandle = new crosstalk.FilterHandle(CT_GROUP);
 
     /* Chờ selectize Đơn vị sẵn sàng */
     var waitDV = setInterval(function () {
@@ -527,10 +525,6 @@ js_logic <- "
     var amEl = document.getElementById('am_select');
     if (amEl) amEl.addEventListener('change', onAmChange);
 
-    /* Gắn event Tỉnh select */
-    var tinhEl = document.getElementById('tinh_select');
-    if (tinhEl) tinhEl.addEventListener('change', onTinhChange);
-  }
   
   
   /* ── Reset tất cả ── */
