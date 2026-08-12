@@ -477,8 +477,135 @@ js_vars <- paste0(
 js_logic <- "
 (function () {
 
-  /* ── State (dùng cho Export) ── */
-  var activeKeys = null;
+  /* ── State ── */
+  var activeKeys = null;                 // dùng cho Export
+  var updating   = false;                // chặn đệ quy khi tự cập nhật options
+
+  var FILTER_COLS = {
+    tuan_select       : 'Tuần',
+    don_vi_dieu_hanh   : 'Đơn vị điều hành',
+    trang_thai_select : 'Trạng thái',
+    am_select          : 'AM chuyên quản'
+  };
+  var FILTER_IDS = Object.keys(FILTER_COLS);
+  var szMap = {};   // id -> selectize instance
+
+  function getSelectizeFor(id) {
+    var wrapper = document.getElementById(id);
+    var input   = wrapper && wrapper.querySelector('.selectized');
+    return (input && input.selectize) ? input.selectize : null;
+  }
+
+  function currentValue(id) {
+    var sz = szMap[id];
+    return sz ? sz.getValue() : '';
+  }
+
+  /* Tập giá trị hợp lệ cho targetId, tính theo FULL_DATA đã lọc bởi CÁC filter KHÁC */
+  function computeFacetOptions(targetId) {
+    var rows = FULL_DATA.filter(function (row) {
+      return FILTER_IDS.every(function (id) {
+        if (id === targetId) return true;
+        var val = currentValue(id);
+        if (!val) return true;
+        return String(row[FILTER_COLS[id]]) === String(val);
+      });
+    });
+    var col = FILTER_COLS[targetId];
+    var seen = {};
+    rows.forEach(function (row) {
+      var v = row[col];
+      if (v !== null && v !== undefined && v !== '') seen[v] = true;
+    });
+    return Object.keys(seen).sort(function (a, b) {
+      return a.localeCompare(b, 'vi', { numeric: true });
+    });
+  }
+
+  function updateOptionsFor(targetId) {
+    var sz = szMap[targetId];
+    if (!sz) return;
+
+    var options = computeFacetOptions(targetId);
+    var curVal  = sz.getValue();
+
+    /* Luôn giữ giá trị đang chọn trong danh sách, kể cả khi nó không còn
+       nằm trong tập con hiện tại — để KHÔNG BAO GIỜ phải xoá option đang chọn */
+    if (curVal && options.indexOf(curVal) === -1) {
+      options = options.concat([curVal]);
+    }
+
+    var optionSet = {};
+    options.forEach(function (v) { optionSet[v] = true; });
+
+    /* Thêm các option mới còn thiếu */
+    options.forEach(function (v) {
+      if (!sz.options.hasOwnProperty(v)) {
+        sz.addOption({ value: v, label: v });
+      }
+    });
+
+    /* Xoá các option không còn hợp lệ, NHƯNG KHÔNG BAO GIỜ xoá option đang chọn */
+    Object.keys(sz.options).forEach(function (v) {
+      if (!optionSet[v] && v !== curVal) {
+        sz.removeOption(v);
+      }
+    });
+
+    sz.refreshOptions(false);
+    /* Không cần setValue nữa vì giá trị đang chọn chưa từng bị đụng tới */
+  }
+
+  /* Khi 1 filter đổi giá trị -> cập nhật list option của 3 filter còn lại */
+  function updateAllFacets(changedId) {
+    if (updating) return;
+    updating = true;
+    FILTER_IDS.forEach(function (id) {
+      if (id !== changedId) updateOptionsFor(id);
+    });
+    updating = false;
+  }
+
+  /* ── Chờ crosstalk sẵn sàng (cho Export) ── */
+  function initFilter() {
+    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
+    var mainHandle = new crosstalk.FilterHandle(CT_GROUP);
+    mainHandle.on('change', function (e) {
+      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
+    });
+  }
+
+  /* ── Chờ 4 selectize sẵn sàng rồi gắn event cascading ── */
+  function waitAndInitFacets() {
+    var ready = FILTER_IDS.every(function (id) {
+      var w = document.getElementById(id);
+      var input = w && w.querySelector('.selectized');
+      return !!(input && input.selectize);
+    });
+    if (!ready) { setTimeout(waitAndInitFacets, 150); return; }
+
+    FILTER_IDS.forEach(function (id) { szMap[id] = getSelectizeFor(id); });
+    FILTER_IDS.forEach(function (id) {
+      szMap[id].on('change', function () { updateAllFacets(id); });
+    });
+  }
+
+  /* ── Reset tất cả ── */
+  window.resetAllFilters = function () {
+    FILTER_IDS.forEach(function (id) {
+      var sz = szMap[id];
+      if (sz) sz.clear();   // không silent -> crosstalk tự reset bảng
+    });
+    /* sau khi clear hết, đưa các list option về đầy đủ trở lại */
+    FILTER_IDS.forEach(function (id) { updateOptionsFor(id); });
+  };
+
+  /* ── Lấy dữ liệu theo filter hiện tại (cho Export) ── */
+  function getFilteredData() {
+    if (!activeKeys) return FULL_DATA;
+    var keySet = new Set(activeKeys.map(String));
+    return FULL_DATA.filter(function (_, i) { return keySet.has(String(i + 1)); });
+  }
 
   /* ── Lazy load script ── */
   function loadScript(url, cb) {
@@ -494,30 +621,6 @@ js_logic <- "
     if (!btn) return;
     btn.disabled    = loading;
     btn.textContent = loading ? '⏳ Đang tạo...' : label;
-  }
-
-  /* ── Theo dõi filter tổng hợp của crosstalk để phục vụ Export ── */
-  function initFilter() {
-    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
-    var mainHandle = new crosstalk.FilterHandle(CT_GROUP);
-    mainHandle.on('change', function (e) {
-      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
-    });
-  }
-
-  /* ── Reset tất cả: chỉ cần clear các ô selectize, ── */
-  /* ── crosstalk sẽ tự động cập nhật lại filter/bảng  ── */
-  window.resetAllFilters = function () {
-    document.querySelectorAll('.selectized').forEach(function (el) {
-      if (el.selectize) el.selectize.clear();
-    });
-  };
-
-  /* ── Lấy dữ liệu theo filter hiện tại (cho Export) ── */
-  function getFilteredData() {
-    if (!activeKeys) return FULL_DATA;
-    var keySet = new Set(activeKeys.map(String));
-    return FULL_DATA.filter(function (_, i) { return keySet.has(String(i + 1)); });
   }
 
   /* ── Xuất Excel ── */
@@ -613,6 +716,7 @@ js_logic <- "
 
   /* ── Khởi động ── */
   initFilter();
+  waitAndInitFacets();
 
 })();
 "
