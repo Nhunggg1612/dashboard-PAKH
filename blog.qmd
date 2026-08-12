@@ -477,71 +477,8 @@ js_vars <- paste0(
 js_logic <- "
 (function () {
 
-  /* ── State ── */
-  var activeKeys    = null;
-
-  
-    /* ── Helpers ── */
-  function buildOptions(selectEl, items) {
-    selectEl.innerHTML = '<option value=\"\">Tất cả</option>';
-    (items || []).forEach(function (v) {
-      if (v === null || v === undefined) return;
-      var opt = document.createElement('option');
-      opt.value = opt.textContent = String(v);
-      selectEl.appendChild(opt);
-    });
-  }
-
-  function getSelectizeVal(wrapperId) {
-    var w = document.querySelector('#' + wrapperId);
-    var h = w && w.querySelector('.selectized');
-    return (h && h.selectize) ? h.selectize.getValue() : '';
-  }
-
-  /* ── Khởi tạo crosstalk ── */
-  function initFilter() {
-    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
-
-    /* Handle tổng hợp — theo dõi activeKeys cho Export */
-    var mainHandle = new crosstalk.FilterHandle(CT_GROUP);
-    mainHandle.on('change', function (e) {
-      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
-    });
-
-    /* Handle riêng cho AM và Tỉnh */
-    amFilterHandle   = new crosstalk.FilterHandle(CT_GROUP);
-
-    /* Chờ selectize Đơn vị sẵn sàng */
-    var waitDV = setInterval(function () {
-      var w = document.querySelector('#don_vi_dieu_hanh');
-      var h = w && w.querySelector('.selectized');
-      if (h && h.selectize) {
-        h.selectize.on('change', onDonViChange);
-        clearInterval(waitDV);
-      }
-    }, 200);
-
-    /* Gắn event AM select */
-    var amEl = document.getElementById('am_select');
-    if (amEl) amEl.addEventListener('change', onAmChange);
-
-  
-  
-  /* ── Reset tất cả ── */
-  window.resetAllFilters = function () {
-    document.querySelectorAll('.selectized').forEach(function (el) {
-      if (el.selectize) el.selectize.clear();
-    });
-  };
-
-  /* ── Lấy dữ liệu theo filter hiện tại (cho Export) ── */
-  function getFilteredData() {
-    if (!activeKeys) return FULL_DATA;
-    var keySet = new Set(activeKeys.map(String));
-    return FULL_DATA.filter(function (_, i) { return keySet.has(String(i + 1)); });
-  }
-  
-  
+  /* ── State (dùng cho Export) ── */
+  var activeKeys = null;
 
   /* ── Lazy load script ── */
   function loadScript(url, cb) {
@@ -557,6 +494,30 @@ js_logic <- "
     if (!btn) return;
     btn.disabled    = loading;
     btn.textContent = loading ? '⏳ Đang tạo...' : label;
+  }
+
+  /* ── Theo dõi filter tổng hợp của crosstalk để phục vụ Export ── */
+  function initFilter() {
+    if (typeof crosstalk === 'undefined') { setTimeout(initFilter, 150); return; }
+    var mainHandle = new crosstalk.FilterHandle(CT_GROUP);
+    mainHandle.on('change', function (e) {
+      activeKeys = (e.value && e.value.length > 0) ? e.value : null;
+    });
+  }
+
+  /* ── Reset tất cả: chỉ cần clear các ô selectize, ── */
+  /* ── crosstalk sẽ tự động cập nhật lại filter/bảng  ── */
+  window.resetAllFilters = function () {
+    document.querySelectorAll('.selectized').forEach(function (el) {
+      if (el.selectize) el.selectize.clear();
+    });
+  };
+
+  /* ── Lấy dữ liệu theo filter hiện tại (cho Export) ── */
+  function getFilteredData() {
+    if (!activeKeys) return FULL_DATA;
+    var keySet = new Set(activeKeys.map(String));
+    return FULL_DATA.filter(function (_, i) { return keySet.has(String(i + 1)); });
   }
 
   /* ── Xuất Excel ── */
