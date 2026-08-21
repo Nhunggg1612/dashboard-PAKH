@@ -196,8 +196,8 @@ tagList(
 ### <span style="color: #C35817;font-family: cambria;">**2. Danh sách chi tiết**</span>
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
-ticket_chitiet <- pakh_ton[c(28, 29, 2, 6, 10, 16:20, 22:24, 3:5, 15, 27,  11,12 )]
-n1 <- c( "Đơn vị điều hành", "AM chuyên quản", "Mã tỉnh", "Mã HĐ", "Tên khách hàng",  "Nhóm sự cố", "Loại sự cố", "Chi tiết", "Ngày bắt đầu", "Ngày kết thúc", "Trạng thái",  "Tên nhân viên", "Mã nhân viên", "Lĩnh vực", "Ngành hàng", "Sản phẩm", "Giai đoạn", "Hệ thống", "SĐT", "Địa chỉ")
+ticket_chitiet <- pakh_ton[c(29, 30, 2, 25, 6, 10, 16:20, 22:24, 3:5, 15, 27,  11,12 )]
+n1 <- c( "Đơn vị điều hành", "AM chuyên quản", "Mã tỉnh", "ID", "Mã HĐ", "Tên khách hàng",  "Nhóm sự cố", "Loại sự cố", "Chi tiết", "Ngày bắt đầu", "Ngày kết thúc", "Trạng thái",  "Tên nhân viên", "Mã nhân viên", "Lĩnh vực", "Ngành hàng", "Sản phẩm", "Giai đoạn", "Hệ thống", "SĐT", "Địa chỉ")
 colnames(ticket_chitiet) <- n1
 ticket_chitiet[] <- lapply(ticket_chitiet, unlist)
 ```

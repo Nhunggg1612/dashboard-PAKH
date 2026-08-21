@@ -473,6 +473,7 @@ tagList(
 )
 ```
 
+
 ### <span style="color: #C35817;font-family: cambria;">**4. Danh sách chi tiết**</span>
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
