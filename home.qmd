@@ -97,82 +97,100 @@ rownames(pakh_ton_bc_tb) <- NULL
 ```{r,out.width = '150%', echo = FALSE, warning=FALSE, message=FALSE}
 library(crosstalk)
 library(reactable)
+library(htmltools)
+
 shared_pakh_ton_bc_tb <- SharedData$new(pakh_ton_bc_tb)
 
-shiny::fluidRow(
-  shiny::column(
-    9,
-    reactable(shared_pakh_ton_bc_tb, minRows = 3,width = 800, height = "auto", pagination = FALSE,
-  resizable = TRUE,
-  wrap = TRUE,
-  searchable = TRUE,
+tbl <- reactable(shared_pakh_ton_bc_tb, minRows = 3, width = 800, height = "auto",
+  pagination = FALSE, resizable = TRUE, wrap = TRUE, searchable = TRUE,
   bordered = TRUE, highlight = TRUE, style = list(fontSize = "16px"),
   theme = reactableTheme(
-  headerStyle = list(background = "#F56222"),
-  rowStyle = list(
-    `&:hover` = list(
-      backgroundColor = "#FFE4CC !important",
-      cursor = "pointer"
-    )
-  )
-),
-  defaultColDef = colDef(
-    #headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal",textAlign = "center"),
-    footerStyle = list(fontWeight = "bold", color = "#B22222")
+    headerStyle = list(background = "#F56222"),
+    rowStyle = list(`&:hover` = list(backgroundColor = "#FFE4CC !important", cursor = "pointer"))
   ),
+  defaultColDef = colDef(footerStyle = list(fontWeight = "bold", color = "#B22222")),
   striped = FALSE,
   columns = list(
-    
-    kq1x = colDef(name = "Giai đoạn", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "unique",
-     align = "left", width = 100, footer = "Tổng"),
-    
-    kq2x = colDef(name = "Lĩnh vực", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "unique",
-     align = "left", width = 100, footer = "Tổng"),
-    
-    kq3x = colDef(name = "Hệ thống", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "unique",
-     align = "left", width = 100, footer = "Tổng"),
-    
-    kq4x = colDef(name = "Đơn vị phụ trách", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "unique",
-     align = "left", width = 120, footer = "Tổng"),
-    
-    kq5x = colDef(name = "Tổng đơn tồn", headerStyle = list(color = "black", background = "#C8E2B1", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "sum", align = "right", width = 90, footer = function(values) sprintf("%.0f", sum(values))),
-    
-    
-    kq6x = colDef(name = "Trong hạn", headerStyle = list(color = "black", background = "#BFCAE6", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "sum", align = "right", width = 90, footer = function(values) sprintf("%.0f", sum(values))),
-    
-    kq7x = colDef(name = "Sắp quá hạn", headerStyle = list(color = "black", background = "#BFCAE6", whiteSpace = "normal",textAlign = "center"),
-      aggregate = "sum", align = "right", width = 100, format = colFormat(digits = 0, separators = TRUE), footer = function(values) sprintf("%s", format(sum(values), big.mark = ",", digits = 2L))),
-    
-    kq8x = colDef(
-  name        = "Quá hạn",
-  headerStyle = list(color = "black", background = "#BFCAE6",
-                     whiteSpace = "normal", textAlign = "center"),
-  aggregate   = "sum",
-  align       = "right",
-  width       = 100,
-  format      = colFormat(digits = 0, separators = TRUE),
-  footer      = function(values) sprintf("%s", format(sum(values), big.mark = ",", digits = 2L)),
-  
-  # ✅ Thêm vào đây
-  style = function(value) {
-    if (!is.na(value) && value > 0) {
-      list(
-        color           = "#B22222",      # Chữ đỏ đậm
-        fontWeight      = "bold",
-        backgroundColor = "#FFE4E1"       # Nền đỏ nhạt
-      )
-    }
-  }
+    kq1x = colDef(name = "Giai đoạn", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "unique", align = "left", width = 100, footer = " "),
+    kq2x = colDef(name = "Lĩnh vực", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "unique", align = "left", width = 100, footer = " "),
+    kq3x = colDef(name = "Hệ thống", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "unique", align = "left", width = 100, footer = " "),
+    kq4x = colDef(name = "Đơn vị phụ trách", headerStyle = list(color = "black", background = "#F5DEB3", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "unique", align = "left", width = 120, footer = "Tổng"),
+    kq5x = colDef(name = "Tổng đơn tồn", headerStyle = list(color = "black", background = "#C8E2B1", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "sum", align = "right", width = 90,
+                  footer = function(values) sprintf("%.0f", sum(values))),
+    kq6x = colDef(name = "Trong hạn", headerStyle = list(color = "black", background = "#BFCAE6", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "sum", align = "right", width = 90,
+                  footer = function(values) sprintf("%.0f", sum(values))),
+    kq7x = colDef(name = "Sắp quá hạn", headerStyle = list(color = "black", background = "#BFCAE6", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "sum", align = "right", width = 100, format = colFormat(digits = 0, separators = TRUE),
+                  footer = function(values) format(sum(values), big.mark = ",", digits = 2L)),
+    kq8x = colDef(name = "Quá hạn", headerStyle = list(color = "black", background = "#BFCAE6", whiteSpace = "normal", textAlign = "center"),
+                  aggregate = "sum", align = "right", width = 100, format = colFormat(digits = 0, separators = TRUE),
+                  footer = function(values) format(sum(values), big.mark = ",", digits = 2L),
+                  style = function(value) {
+                    if (!is.na(value) && value > 0) {
+                      list(color = "#B22222", fontWeight = "bold", backgroundColor = "#FFE4E1")
+                    }
+                  })
+  )
 )
 
-  )
-)))
+tagList(
+  tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
+  tags$style(HTML("
+    .tbl-toolbar { display:flex; align-items:center; gap:10px; margin:0 0 10px 4px; font-family:cambria, serif; }
+    .tbl-toolbar button {
+      border:1px solid #c9c9c9; border-radius:6px; background:#fff;
+      padding:6px 14px; font-family:cambria, serif; font-size:15px;
+      cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05);
+    }
+    .tbl-toolbar button:hover { background:#FFE4CC; border-color:#F56222; }
+    #tbl-capture { display:inline-block; background:#fff; padding:8px; }
+  ")),
+  shiny::fluidRow(
+    shiny::column(
+      9,
+      tags$div(
+        class = "tbl-toolbar",
+        tags$button(id = "btn-tai-bang", "⬇ PNG table"),
+        tags$span(id = "tbl-status", style = "font-size:13px; color:#666;")
+      ),
+      tags$div(id = "tbl-capture", tbl)
+    )
+  ),
+  tags$script(HTML("
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.getElementById('btn-tai-bang');
+      if (!btn) return;
+      btn.addEventListener('click', function() {
+        var node   = document.getElementById('tbl-capture');
+        var status = document.getElementById('tbl-status');
+        var search = node.querySelector('.rt-search');   // ẩn ô tìm kiếm khi chụp
+        if (search) search.style.display = 'none';
+        status.textContent = 'Đang tạo ảnh...';
+
+        html2canvas(node, {scale: 2, backgroundColor: '#ffffff', useCORS: true, scrollY: -window.scrollY})
+          .then(function(canvas) {
+            var a = document.createElement('a');
+            a.download = 'bang_PAKH_ton_' + new Date().toISOString().slice(0,10) + '.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+            if (search) search.style.display = '';
+            status.textContent = '';
+          })
+          .catch(function(e) {
+            if (search) search.style.display = '';
+            status.textContent = 'Lỗi khi tạo ảnh.';
+            console.error(e);
+          });
+      });
+    });
+  "))
+)
 ```
 
 ### <span style="color: #C35817;font-family: cambria;">**2. Danh sách chi tiết**</span>
