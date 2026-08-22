@@ -61,6 +61,14 @@ now <- format(
   as.POSIXct(Sys.time(), tz = "Asia/Ho_Chi_Minh"), 
   "%d/%m/%Y %H:%M:%S"
 )
+
+am_confirm <- read_excel("data/AM_update.xlsx")
+am_confirm <- am_confirm[c(1,2,6:8,10,11)]
+name <- c("Time", "ID", "am_tiendo", "am_ghichu", "nhansu_update", "hot_ticket", "date_hang")
+colnames(am_confirm) <- name
+am_confirm$ID <- as.character(am_confirm$ID)
+
+pakh_ton <- left_join(pakh_ton, am_confirm, by = "ID")
 ```
 
 ## <span style="color: #C35817;font-family: cambria;">**I. DANH SÁCH TICKET CÒN TỒN CHƯA XỬ LÝ ĐẾN ** <strong>`r now`</strong></span>
@@ -193,7 +201,8 @@ tagList(
 )
 ```
 
-### <span style="color: #C35817;font-family: cambria;">**2. Danh sách chi tiết**</span>
+
+### <span style="color: #C35817;font-family: cambria;">**3. Danh sách chi tiết**</span>
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
 ticket_chitiet <- pakh_ton[c(29, 30, 2, 25, 6, 10, 16:20, 22:24, 3:5, 15, 27,  11,12 )]
