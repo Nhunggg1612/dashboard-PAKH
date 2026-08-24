@@ -303,8 +303,97 @@ tbl <- reactable(shared_am_xuly_ticket_tb, minRows = 3, width = 800, height = "a
   )
 )
 
+# ── ID DUY NHẤT CHO BẢNG NÀY (mỗi bảng một giá trị khác nhau!) ────────────────
+TBL_ID <- "am-xuly"
+
+id_btn <- paste0("btn-", TBL_ID)
+id_cap <- paste0("cap-", TBL_ID)
+id_sta <- paste0("sta-", TBL_ID)
+
+js_tpl <- "
+(function () {
+  var ID = '%%ID%%';
+  var btn = document.getElementById('btn-' + ID);
+  if (!btn || btn.dataset.bound) return;
+  btn.dataset.bound = '1';
+
+  function loadH2C(cb) {
+    if (window.html2canvas) { cb(); return; }
+    var url = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    var s = document.querySelector('script[data-h2c]');
+    if (s) { s.addEventListener('load', cb); return; }
+    s = document.createElement('script');
+    s.src = url; s.setAttribute('data-h2c', '1');
+    s.onload = cb;
+    s.onerror = function () { alert('Không tải được html2canvas.'); };
+    document.head.appendChild(s);
+  }
+
+  btn.addEventListener('click', function () {
+    var node   = document.getElementById('cap-' + ID);
+    var status = document.getElementById('sta-' + ID);
+    if (!node) return;
+
+    /* Bảng đang nằm trong tab ẩn -> html2canvas sẽ ra ảnh trắng */
+    if (node.offsetParent === null || node.offsetWidth === 0) {
+      status.textContent = 'Hãy mở tab chứa bảng rồi bấm lại.';
+      return;
+    }
+
+    status.textContent = 'Đang tạo ảnh...';
+    btn.disabled = true;
+
+    loadH2C(function () {
+      var search  = node.querySelector('.rt-search');
+      var scroller= node.querySelector('.rt-table');
+      var oldSearch, oldOverflow, oldWidth;
+
+      if (search)   { oldSearch = search.style.display; search.style.display = 'none'; }
+      /* Mở khoá cuộn ngang để chụp trọn vẹn các cột bên phải */
+      if (scroller) { oldOverflow = scroller.style.overflow; scroller.style.overflow = 'visible'; }
+      oldWidth = node.style.width;
+      node.style.width = 'max-content';
+
+      function restore() {
+        if (search)   search.style.display  = oldSearch || '';
+        if (scroller) scroller.style.overflow = oldOverflow || '';
+        node.style.width = oldWidth || '';
+      }
+
+      html2canvas(node, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth:  document.documentElement.scrollWidth,
+        width:  node.scrollWidth,
+        height: node.scrollHeight
+      }).then(function (canvas) {
+        restore();
+        var a = document.createElement('a');
+        a.download = 'bang_PAKH_ton_' + ID + '_' +
+                     new Date().toISOString().slice(0, 10) + '.png';
+        a.href = canvas.toDataURL('image/png');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        status.textContent = '';
+        btn.disabled = false;
+      }).catch(function (e) {
+        restore();
+        status.textContent = 'Lỗi khi tạo ảnh.';
+        btn.disabled = false;
+        console.error(e);
+      });
+    });
+  });
+})();
+"
+
+js_final <- gsub("%%ID%%", TBL_ID, js_tpl, fixed = TRUE)
+
 tagList(
-  tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
   tags$style(HTML("
     .tbl-toolbar { display:flex; align-items:center; gap:10px; margin:0 0 10px 4px; font-family:cambria, serif; }
     .tbl-toolbar button {
@@ -313,47 +402,20 @@ tagList(
       cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05);
     }
     .tbl-toolbar button:hover { background:#FFE4CC; border-color:#F56222; }
-    #tbl-capture { display:inline-block; background:#fff; padding:8px; }
+    .tbl-capture { display:inline-block; background:#fff; padding:8px; }
   ")),
   shiny::fluidRow(
     shiny::column(
       9,
       tags$div(
         class = "tbl-toolbar",
-        tags$button(id = "btn-tai-bang", "⬇ PNG table"),
-        tags$span(id = "tbl-status", style = "font-size:13px; color:#666;")
+        tags$button(id = id_btn, "\u2B07 PNG table"),
+        tags$span(id = id_sta, style = "font-size:13px; color:#666;")
       ),
-      tags$div(id = "tbl-capture", tbl)
+      tags$div(id = id_cap, class = "tbl-capture", tbl)
     )
   ),
-  tags$script(HTML("
-    document.addEventListener('DOMContentLoaded', function() {
-      var btn = document.getElementById('btn-tai-bang');
-      if (!btn) return;
-      btn.addEventListener('click', function() {
-        var node   = document.getElementById('tbl-capture');
-        var status = document.getElementById('tbl-status');
-        var search = node.querySelector('.rt-search');   // ẩn ô tìm kiếm khi chụp
-        if (search) search.style.display = 'none';
-        status.textContent = 'Đang tạo ảnh...';
-
-        html2canvas(node, {scale: 2, backgroundColor: '#ffffff', useCORS: true, scrollY: -window.scrollY})
-          .then(function(canvas) {
-            var a = document.createElement('a');
-            a.download = 'bang_PAKH_ton_' + new Date().toISOString().slice(0,10) + '.png';
-            a.href = canvas.toDataURL('image/png');
-            a.click();
-            if (search) search.style.display = '';
-            status.textContent = '';
-          })
-          .catch(function(e) {
-            if (search) search.style.display = '';
-            status.textContent = 'Lỗi khi tạo ảnh.';
-            console.error(e);
-          });
-      });
-    });
-  "))
+  tags$script(HTML(js_final))
 )
 ```
 
