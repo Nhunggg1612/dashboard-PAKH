@@ -429,8 +429,97 @@ tagList(
 )
 ```
 
+### <span style="color: #C35817;font-family: cambria;">**3. Xu hướng tồn ticket theo ngày**</span>
+```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
+xuhuong_ton <- read_excel("data/AM_update.xlsx", sheet = "plot_tong")
+```
 
-### <span style="color: #C35817;font-family: cambria;">**3. Danh sách chi tiết**</span>
+```{r,out.width = '150%',fig.width=7, fig.height=4, echo = FALSE, warning=FALSE, message=FALSE}
+library(highcharter); library(dplyr); library(tidyr)
+library(jsonlite); library(htmltools); library(htmlwidgets)
+
+# 1. Chuẩn bị dữ liệu
+dat <- xuhuong_ton %>%
+  rename(ngay = `Ngày`, tong_ton = `Tổng tồn`, qua_han = `Quá hạn`)
+
+if (!inherits(dat$ngay, "Date"))
+  dat$ngay <- as.Date(dat$ngay, tryFormats = c("%Y-%m-%d", "%d/%m/%Y"))
+
+dat <- dat %>%
+  arrange(ngay) %>%
+  mutate(tong_ton = round(replace_na(tong_ton, 0), 0),
+         qua_han  = round(replace_na(qua_han, 0), 0))
+
+all_dates <- format(dat$ngay, "%d/%m/%Y")
+
+# 2. Vẽ chart 2 line
+hc <- highchart() %>%
+  hc_chart(type = "spline") %>%
+  hc_xAxis(categories = all_dates,
+           labels = list(style = list(fontSize = "12px", fontFamily = "cambria"))) %>%
+  hc_title(text = "Xu hướng tồn PAKH - Tất cả", margin = 20, align = "center",
+           style = list(color = "black", fontWeight = "bold",
+                        fontFamily = "cambria", fontSize = "20px")) %>%
+  hc_yAxis(lineWidth = 3,
+           title = list(text = "Số ticket",
+                        style = list(fontWeight = "bold", fontSize = "15px", fontFamily = "cambria")),
+           labels = list(style = list(fontSize = "12px", fontFamily = "cambria"))) %>%
+  hc_add_series(name = "Tổng tồn", data = dat$tong_ton,
+                dataLabels = list(enabled = TRUE, format = "{y}")) %>%
+  hc_add_series(name = "Quá hạn", data = dat$qua_han,
+                dataLabels = list(enabled = TRUE, format = "{y}")) %>%
+  hc_tooltip(shared = TRUE, headerFormat = "<b>{point.key}</b><br>",
+             pointFormat = "{series.name}: <b>{point.y}</b><br>") %>%
+  hc_colors(c("#645889", "#D9534F")) %>%
+  hc_legend(enabled = TRUE,
+            itemStyle = list(color = "black", fontWeight = "bold",
+                             fontFamily = "cambria", fontSize = "14px")) %>%
+  hc_exporting(enabled = TRUE, filename = "xu-huong-ton") %>%
+  hc_add_dependency("modules/offline-exporting.js")
+
+# 3. JS: lọc đường + nút tải ảnh
+hc <- hc %>% onRender("
+function(el, x) {
+  var chart = Highcharts.charts.filter(function(c){
+    return c && c.renderTo && (c.renderTo === el || el.contains(c.renderTo));
+  })[0];
+
+  document.getElementById('filter-loai').addEventListener('change', function() {
+    var v = this.value;
+    chart.series.forEach(function(s){
+      s.setVisible(v === 'Tất cả' || s.name === v, false);
+    });
+    chart.setTitle({text: 'Xu hướng tồn PAKH - ' + v}, false);
+    chart.redraw();
+  });
+
+  document.getElementById('btn-tai-anh-ton').addEventListener('click', function() {
+    var opt = {type: 'image/png',
+               filename: 'Ton_' + document.getElementById('filter-loai').value};
+    if (chart.exportChartLocal) { chart.exportChartLocal(opt); } else { chart.exportChart(opt); }
+  });
+}")
+
+# 4. Dropdown + button + chart
+tagList(
+  tags$div(
+    style = "display:flex; gap:10px; align-items:center; margin-bottom:10px; font-family:cambria;",
+    tags$label("Chỉ tiêu:", style = "font-weight:bold;"),
+    tags$select(
+      id = "filter-loai",
+      style = "padding:4px 8px; font-family:cambria; font-size:14px;",
+      lapply(c("Tất cả", "Tổng tồn", "Quá hạn"), function(p)
+        tags$option(value = p, selected = if (p == "Tất cả") "selected", p))
+    ),
+    tags$button(id = "btn-tai-anh-ton", "⬇ PNG",
+                style = "padding:5px 12px; cursor:pointer; font-family:cambria;")
+  ),
+  hc
+)
+```
+
+
+### <span style="color: #C35817;font-family: cambria;">**4. Danh sách chi tiết**</span>
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
 ticket_chitiet <- pakh_ton[c(29, 30, 2, 25, 6, 10, 16:20, 22:24, 3:5, 15, 27,  11,12 , 33,34,36,37, 32)]
