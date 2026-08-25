@@ -218,11 +218,11 @@ pakh_ton %>%
   group_by(am) %>%
   summarise(tong = n(),
             trong_han_dangxly = sum(!is.na(ma_HD) & trang_thai == "Trong hạn" & !is.na(am_tiendo) & am_tiendo != "Chưa xử lý", na.rm = TRUE),
-            trong_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Trong hạn" & is.na(am_tiendo) | am_tiendo == "Chưa xử lý", na.rm = TRUE),
+            trong_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Trong hạn" & (is.na(am_tiendo) | am_tiendo == "Chưa xử lý"), na.rm = TRUE),
             sap_qua_han_dangxly = sum(!is.na(ma_HD) & trang_thai == "Sắp quá hạn" & !is.na(am_tiendo) & am_tiendo != "Chưa xử lý", na.rm = TRUE),
-            sap_qua_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Sắp quá hạn" & is.na(am_tiendo)  | am_tiendo == "Chưa xử lý", na.rm = TRUE),
+            sap_qua_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Sắp quá hạn" & (is.na(am_tiendo)  | am_tiendo == "Chưa xử lý"), na.rm = TRUE),
             qua_han_dangxly = sum(!is.na(ma_HD) & trang_thai == "Quá hạn" & !is.na(am_tiendo) & am_tiendo != "Chưa xử lý", na.rm = TRUE),
-            qua_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Quá hạn" & is.na(am_tiendo)  | am_tiendo == "Chưa xử lý", na.rm = TRUE)) -> am_xuly_ticket
+            qua_han_chuaxly = sum(!is.na(ma_HD) & trang_thai == "Quá hạn" & (is.na(am_tiendo)  | am_tiendo == "Chưa xử lý"), na.rm = TRUE)) -> am_xuly_ticket
 ```
 
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
