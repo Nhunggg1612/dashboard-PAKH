@@ -68,6 +68,16 @@ name <- c("Time", "ID", "am_tiendo", "am_ghichu", "nhansu_update", "hot_ticket",
 colnames(am_confirm) <- name
 am_confirm$ID <- as.character(am_confirm$ID)
 
+library(dplyr)
+library(lubridate)
+
+am_confirm <- am_confirm %>%
+  mutate(Time_dt = dmy_hm(Time)) %>%
+  group_by(ID) %>%
+  slice_max(Time_dt, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  dplyr::select(-Time_dt)
+
 pakh_ton <- left_join(pakh_ton, am_confirm, by = "ID")
 ```
 
