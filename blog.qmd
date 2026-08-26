@@ -61,6 +61,16 @@ now <- format(
   as.POSIXct(Sys.time(), tz = "Asia/Ho_Chi_Minh"), 
   "%d/%m/%Y %H:%M:%S"
 )
+
+first_day <- as.Date(format(Sys.Date(), "%Y-%m-01"))
+
+pakh_ht <- pakh_ht %>%
+  mutate(thang_tao = case_when(date_tao < first_day ~ "Tháng trước",
+                               date_tao >= first_day ~ "Tạo mới",
+                               TRUE ~ NA_character_))
+
+pakh_ht <- pakh_ht %>%
+  filter(thang_tao == "Tạo mới")
 ```
 
 ## <span style="color: #C35817;font-family: cambria;">**I. TRẠNG THÁI TICKET PHÁT SINH TRONG THÁNG ĐẾN ** <strong>`r now`</strong></span>
