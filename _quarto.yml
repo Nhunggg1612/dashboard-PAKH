@@ -14,6 +14,8 @@ website:
         text: TICKET PAKH TỒN
       - href: blog.qmd
         text: TICKET PAKH PHÁT SINH TRONG THÁNG
+      - href: total.qmd
+        text: BÁO CÁO BAN GĐ
   page-footer:
     left: "© {2025} Nguyễn Thị Trang Nhung"
     right: "Data Analyst"
