@@ -157,8 +157,8 @@ t3 <- sum(pakh_ht_bc_tb$kq3x, na.rm = TRUE)
 t4 <- sum(pakh_ht_bc_tb$kq4x, na.rm = TRUE)
 pct_tt <- if (t3 == 0) NA_real_ else (t4 - t3) / t3 * 100
 
-style_tang <- list(background = "#D5F5E3", color = "#1E8449", fontWeight = "bold")
-style_giam <- list(background = "#FADBD8", color = "#C0392B", fontWeight = "bold")
+style_tang <- list(background = "#FADBD8", color = "#C0392B", fontWeight = "bold")
+style_giam <- list(background = "#D5F5E3", color = "#1E8449", fontWeight = "bold")
 style_bang <- list(background = "#FFFFFF", color = "#000000", fontWeight = "normal")
 
 fmt_tt <- function(p) {
