@@ -106,7 +106,7 @@ pakh_ton <- left_join(pakh_ton, am_confirm, by = "ID")
 ```{r, warning=FALSE, message=FALSE, results = 'hide', echo = FALSE}
 pakh_ht %>%
   group_by(giai_doan, phong_dieuhanh) %>%
-  summarise(tong_n_1 = sum(!is.na(ma_HD) & thang_tao == "Tháng trước" & date_tao <= today(), na.rm = TRUE),
+  summarise(tong_n_1 = sum(!is.na(ma_HD) & thang_tao == "Tháng trước" & date_tao <= ngay_n_1, na.rm = TRUE),
             tong_n = sum(!is.na(ma_HD) & thang_tao == "Tạo mới", na.rm = TRUE),
              pct = if_else(is.na(tong_n_1) | tong_n_1 == 0,
                   NA_real_,
